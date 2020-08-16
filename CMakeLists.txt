@@ -1,0 +1,51 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+set(PROJECT_NAME "PBC")
+Project(${PROJECT_NAME})
+
+function(GroupDirectories dirPrefix groupPrefix targetDir pbcLibSources)
+	get_filename_component(currentDirName ${targetDir} NAME)
+	string(CONCAT currentDirFullName "${dirPrefix}${currentDirName}/")
+	string(CONCAT currentDirGroupName "${groupPrefix}${currentDirName}")
+	file(GLOB allFiles "${targetDir}/*")
+	file(GLOB allCFiles "${targetDir}/*.c")
+	file(GLOB allHFiles "${targetDir}/*.h*")
+	file(GLOB allCXXFiles "${targetDir}/*.c*")
+	
+	list(LENGTH allFiles  argv_len)
+	list(LENGTH allCFiles lenC)
+	list(LENGTH allCXXFiles lenCXX)
+	list(LENGTH allHFiles lenH)
+	
+	set(allUsefulFileCount 0)
+	math(EXPR allUsefulFileCount "${lenC}+${lenCXX}+${lenH}")
+	if(0 LESS allUsefulFileCount)
+		set(mGroups ${allCFiles} ${allCXXFiles} ${allHFiles})
+		source_group(${currentDirGroupName} FILES ${mGroups})
+		message(STATUS "${currentDirGroupName} c:${lenC} cxx:${lenCXX} h:${lenH} total:${argv_len}")
+	endif()
+	set(${pbcLibSources} ${mGroups} PARENT_SCOPE)
+endfunction()
+
+if(WIN32)
+	message(STATUS "PROJECT_SOURCE_DIR ${PROJECT_SOURCE_DIR}")
+	message(STATUS "CMAKE_CURRENT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}")
+	include_directories(${PROJECT_SOURCE_DIR}/src)
+	include_directories("../Lua5.1.4/src")
+	GroupDirectories("" "" ${CMAKE_CURRENT_SOURCE_DIR}/src pbcLibSources)
+	
+	set(PBCLibModule ${pbcLibSources})
+	
+	add_definitions(-DUNICODE -D_UNICODE -D_SCL_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_WARNINGS)
+	set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
+
+	set(CMAKE_CXX_FLAGS_RELEASE "/MT /O2 /Ob2 /DNDEBUG")
+	set(CMAKE_CXX_FLAGS_DEBUG "/MTd /Zi /Ob0 /Od /RTC1")
+	set(CMAKE_CXX_FLAGS "/DWIN32 /D_WINDOWS /W3 /GR /EHsc")
+	set(CMAKE_C_FLAGS_RELEASE "/MT /O2 /Ob2 /DNDEBUG")
+	set(CMAKE_C_FLAGS_DEBUG "/MTd /Zi /Ob0 /Od /RTC1")
+	set(CMAKE_C_FLAGS "/DWIN32 /D_WINDOWS /W3")
+	
+	add_library(lib${PROJECT_NAME} ${PBCLibModule})
+	
+	set_target_properties(lib${PROJECT_NAME} PROPERTIES OUTPUT_NAME "lib${PROJECT_NAME}")
+ENDIF()
